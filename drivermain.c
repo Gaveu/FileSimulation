@@ -23,6 +23,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	KdPrint(("Driver Load!\n"));
 
 	//驱动对象与设备对象、符号链接初始化
+	DriverObject->DriverUnload = Unload;
 	status = IoCreateDevice(DriverObject, sizeof(DEVICE_EXTENSION), &DeviceName, FILE_DEVICE_UNKNOWN, 0, FALSE, &DeviceObject);
 	if (!NT_SUCCESS(status))
 	{

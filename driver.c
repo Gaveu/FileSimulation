@@ -39,6 +39,7 @@ NTSTATUS DispatchRoutine(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	KdPrint(("%s\n", irpType[stack->MajorFunction]));
 	Irp->IoStatus.Information = 0;
 	Irp->IoStatus.Status = STATUS_SUCCESS;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return STATUS_SUCCESS;
 }
 
@@ -111,6 +112,9 @@ NTSTATUS DispatchWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		uLength = stack->Parameters.Write.Length;
 		offset = stack->Parameters.Write.ByteOffset.LowPart;
 		
+		KdPrint(("Dispatch write uLength:%d!\n",uLength));
+		KdPrint(("Dispatch write offset:%d!\n", offset));
+
 		//检查待写入数据会不会超过当前设备扩展的缓冲区长度
 		if (offset + uLength <= MAX_FILE_LENGTH)
 		{
@@ -119,9 +123,10 @@ NTSTATUS DispatchWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 			{
 				DeviceExtension->Length = uLength + offset;
 			}
-			RtlCopyMemory(DeviceExtension + offset, Irp->AssociatedIrp.SystemBuffer, uLength);
+			RtlCopyMemory(DeviceExtension->Buffer + offset, Irp->AssociatedIrp.SystemBuffer, uLength);
 			uWritedLength = DeviceExtension->Length;
 			status = STATUS_SUCCESS;
+			KdPrint(("Dispatch write done:%s!\n", Irp->AssociatedIrp.SystemBuffer));
 		}
 		//检查待写入数据会超过当前设备扩展的缓冲区长度，置状态为STATUS_BUFFER_TOO_SMALL
 		else
@@ -168,7 +173,7 @@ NTSTATUS DispatchQueryInfo(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		else
 		{
 			uLength = 0;
-			status = STATUS_INVALID_PARAMETER;
+			status = STATUS_BUFFER_TOO_SMALL;
 			KdPrint(("Dispatch query failed! 0x%x\n",status));
 		}
 	}
